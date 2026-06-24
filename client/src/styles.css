@@ -1,0 +1,163 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-obsidian: var(--obsidian);
+  --color-cyan-glow: var(--cyan-glow);
+  --color-slate-glass: var(--slate-glass);
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+:root {
+  --radius: 0.5rem;
+  --obsidian: #050505;
+  --cyan-glow: #00f2ff;
+  --slate-glass: #111111;
+
+  --background: #050505;
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #00f2ff;
+  --primary-foreground: #050505;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #fafafa;
+  --muted: #141414;
+  --muted-foreground: #a1a1aa;
+  --accent: #00f2ff;
+  --accent-foreground: #050505;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #00f2ff;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 242, 255, 0.08), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(0, 242, 255, 0.04), transparent);
+  }
+  ::selection {
+    background: var(--cyan-glow);
+    color: #050505;
+  }
+}
+
+@utility glass-morph {
+  background: rgba(17, 17, 17, 0.65);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@utility hero-gradient {
+  background: radial-gradient(circle at 50% 40%, rgba(0, 242, 255, 0.10) 0%, rgba(5, 5, 5, 1) 70%);
+}
+
+@utility text-glow {
+  text-shadow: 0 0 24px rgba(0, 242, 255, 0.4);
+}
+
+@utility card-glow {
+  box-shadow: 0 0 0 1px rgba(0, 242, 255, 0.4), 0 20px 60px -10px rgba(0, 242, 255, 0.25);
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility premium-hover-btn {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  &:hover {
+    transform: scale(1.03) translateY(-1px) !important;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.45) !important;
+    filter: brightness(1.1) !important;
+  }
+  &:active {
+    transform: scale(0.98) translateY(0) !important;
+  }
+}
+
+@utility premium-hover-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  &:hover {
+    transform: translateY(-6px) scale(1.01) !important;
+    box-shadow: 0 12px 30px rgba(0, 242, 255, 0.15), 0 0 0 1px rgba(0, 242, 255, 0.2) !important;
+    border-color: rgba(0, 242, 255, 0.3) !important;
+  }
+}
+
+@utility premium-hover-logo {
+  transition: all 0.3s ease !important;
+  &:hover {
+    transform: scale(1.08) !important;
+    filter: drop-shadow(0 0 8px var(--hover-color)) brightness(1.2) !important;
+  }
+}
+
+@utility premium-hover-nav {
+  position: relative;
+  transition: color 0.3s ease !important;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #00f2ff;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px #00f2ff;
+  }
+  &:hover {
+    color: #00f2ff !important;
+    &::after {
+      width: 100%;
+    }
+  }
+}
