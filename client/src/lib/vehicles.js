@@ -1,136 +1,74 @@
-import bugatti from "@/assets/bugatti.jpg";
-import lambo from "@/assets/lambo.jpg";
-import ferrari from "@/assets/ferrari.jpg";
-import porsche from "@/assets/porsche.jpg";
-import gulfstream from "@/assets/gulfstream.jpg";
-import bombardier from "@/assets/bombardier.jpg";
-import kawasaki from "@/assets/kawasaki.jpg";
-import yamaha from "@/assets/yamaha.jpg";
-export const vehicles = [
-    {
-        id: "bugatti-chiron",
-        brand: "Bugatti",
-        model: "Chiron Mistral",
-        year: 2024,
-        price: 5_000_000,
-        mileage: "1,200 mi",
-        fuel: "Gasoline",
-        category: "car",
-        subcategory: "Hypercar",
-        image: bugatti,
-        tag: "Featured",
-        hp: "1,578 HP",
-        topSpeed: "261 mph",
-    },
-    {
-        id: "lambo-aventador",
-        brand: "Lamborghini",
-        model: "Aventador SVJ",
-        year: 2023,
-        price: 620_000,
-        mileage: "3,400 mi",
-        fuel: "Gasoline",
-        category: "car",
-        subcategory: "Sports Car",
-        image: lambo,
-        tag: "Rare",
-        hp: "759 HP",
-        topSpeed: "217 mph",
-    },
-    {
-        id: "ferrari-sf90",
-        brand: "Ferrari",
-        model: "SF90 Stradale",
-        year: 2024,
-        price: 625_000,
-        mileage: "0 mi",
-        fuel: "Hybrid",
-        category: "car",
-        subcategory: "Hybrid Supercar",
-        image: ferrari,
-        tag: "New Arrival",
-        hp: "986 HP",
-        topSpeed: "211 mph",
-    },
-    {
-        id: "porsche-911",
-        brand: "Porsche",
-        model: "911 GT3 RS",
-        year: 2024,
-        price: 312_000,
-        mileage: "420 mi",
-        fuel: "Gasoline",
-        category: "car",
-        subcategory: "Sports Car",
-        image: porsche,
-        hp: "518 HP",
-        topSpeed: "184 mph",
-    },
-    {
-        id: "gulfstream-g700",
-        brand: "Gulfstream",
-        model: "G700",
-        year: 2023,
-        price: 75_000_000,
-        mileage: "450 hrs",
-        fuel: "Jet A",
-        category: "jet",
-        subcategory: "Executive Jet",
-        image: gulfstream,
-        tag: "Featured Jet",
-        hp: "Rolls-Royce Pearl",
-        topSpeed: "Mach 0.925",
-    },
-    {
-        id: "bombardier-7500",
-        brand: "Bombardier",
-        model: "Global 7500",
-        year: 2024,
-        price: 78_000_000,
-        mileage: "120 hrs",
-        fuel: "Jet A",
-        category: "jet",
-        subcategory: "Luxury Jet",
-        image: bombardier,
-        hp: "GE Passport",
-        topSpeed: "Mach 0.925",
-    },
-    {
-        id: "yamaha-r1",
-        brand: "Yamaha",
-        model: "YZF-R1M",
-        year: 2024,
-        price: 27_500,
-        mileage: "0 mi",
-        fuel: "Gasoline",
-        category: "bike",
-        subcategory: "Sports Bike",
-        image: yamaha,
-        tag: "New",
-        hp: "200 HP",
-        topSpeed: "186 mph",
-    },
-    {
-        id: "kawasaki-h2",
-        brand: "Kawasaki",
-        model: "Ninja H2R",
-        year: 2024,
-        price: 56_500,
-        mileage: "0 mi",
-        fuel: "Gasoline",
-        category: "bike",
-        subcategory: "Track Bike",
-        image: kawasaki,
-        tag: "Rare Find",
-        hp: "310 HP",
-        topSpeed: "249 mph",
-    },
-];
+// Fallback client-side vehicle data for offline / fallback mode
+import cars from "./data/cars.json";
+import bikes from "./data/bikes.json";
+import jets from "./data/jets.json";
+import ships from "./data/ships.json";
+
+const combined = [];
+cars.forEach((c, idx) => combined.push({ ...c, id: `car-${idx}`, category: "car" }));
+bikes.forEach((b, idx) => combined.push({ ...b, id: `bike-${idx}`, category: "bike" }));
+jets.forEach((j, idx) => combined.push({ ...j, id: `jet-${idx}`, category: "jet" }));
+ships.forEach((s, idx) => combined.push({ ...s, id: `ship-${idx}`, category: "ship" }));
+
+// Deterministic status distributor matching database seeding
+let seed = 42;
+const random = () => {
+  const x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+};
+
+const shuffled = [...combined].sort(() => random() - 0.5);
+
+const total = shuffled.length;
+const soldCount = Math.round(total * 0.10);
+const featuredCount = Math.round(total * 0.20);
+const discountedCount = Math.round(total * 0.15);
+
+shuffled.forEach((v, idx) => {
+  if (idx < soldCount) {
+    v.status = "Sold";
+    v.tag = "Sold Out";
+    v.isFeatured = false;
+    v.discountPercentage = 0;
+  } else if (idx < soldCount + featuredCount) {
+    v.status = "Featured";
+    v.isFeatured = true;
+    v.tag = "Featured";
+    v.discountPercentage = 0;
+  } else if (idx < soldCount + featuredCount + discountedCount) {
+    v.status = "Discounted";
+    v.isFeatured = false;
+    const discounts = [10, 15, 20];
+    v.discountPercentage = discounts[idx % discounts.length];
+    v.tag = `${v.discountPercentage}% OFF`;
+  } else {
+    v.status = "Available";
+    v.isFeatured = false;
+    v.discountPercentage = 0;
+    v.tag = "";
+  }
+});
+
+// Sync pricing fields matching database seeding logic
+shuffled.forEach((v) => {
+  const discount = v.discountPercentage || 0;
+  const originalPrice = v.price;
+  const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
+  v.originalPrice = originalPrice;
+  v.discountedPrice = discountedPrice;
+  if (discount > 0) {
+    v.price = discountedPrice;
+  }
+});
+
+export const vehicles = shuffled;
+
 export const formatPrice = (p) => p >= 1_000_000
     ? `$${(p / 1_000_000).toFixed(p % 1_000_000 === 0 ? 0 : 2)}M`
     : `$${p.toLocaleString()}`;
+
 export const brands = {
-    cars: ["Bugatti", "Ferrari", "Lamborghini", "Porsche", "BMW", "Mercedes", "Audi", "Tesla"],
-    bikes: ["Yamaha", "Honda", "Kawasaki", "Ducati", "KTM"],
-    jets: ["Gulfstream", "Bombardier", "Embraer", "Dassault"],
+    cars: ["Bugatti", "Ferrari", "Lamborghini", "Porsche", "BMW", "Mercedes", "Audi", "Tesla", "Bentley", "Aston Martin", "Maserati", "Lexus", "Nissan", "Chevrolet", "Dodge", "Koenigsegg", "Pagani", "Ford", "Jaguar", "Lucid", "Rimac"],
+    bikes: ["Yamaha", "Honda", "Kawasaki", "Ducati", "KTM", "Suzuki", "BMW Motorrad", "Aprilia", "Triumph", "Harley Davidson", "MV Agusta", "Indian", "Husqvarna", "Moto Guzzi"],
+    jets: ["Gulfstream", "Bombardier", "Embraer", "Dassault", "Cessna", "HondaJet", "Boeing", "Airbus", "Pilatus", "Cirrus", "SyberJet"],
 };
