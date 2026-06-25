@@ -1,3 +1,9 @@
 {
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://nexride-8q4s.onrender.com/api/:path*"
+    }
+  ]
 }
