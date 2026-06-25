@@ -18,19 +18,10 @@ function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Redirect to login if not logged in
-  useEffect(() => {
-    if (!user) {
-      navigate({ to: "/login" });
-    }
-  }, [user, navigate]);
-
-  if (!user) return null;
-
-  const { data: dbFavorites } = useFavorites(user.token);
-  const { data: dbInquiries } = useInquiries(user.token);
-  const { data: dbVehicles } = useVehicles(user.token);
-  const removeFavoriteMutation = useRemoveFavorite(user.token);
+  const { data: dbFavorites } = useFavorites(user?.token);
+  const { data: dbInquiries } = useInquiries(user?.token);
+  const { data: dbVehicles } = useVehicles(user?.token);
+  const removeFavoriteMutation = useRemoveFavorite(user?.token);
 
   // General Tabs: favorites, listings, inquiries, settings
   const [activeTab, setActiveTab] = useState("listings");
@@ -40,14 +31,21 @@ function DashboardPage() {
   const [inquirySubTab, setInquirySubTab] = useState("received");
 
   // Profile Form States
-  const [name, setName] = useState(user.name || "");
-  const [phone, setPhone] = useState(user.phone || "");
-  const [profileImage, setProfileImage] = useState(user.profileImage || "");
+  const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [profileImage, setProfileImage] = useState(user?.profileImage || "");
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [recentVehicles, setRecentVehicles] = useState([]);
+
+  // Redirect to login if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate({ to: "/login" });
+    }
+  }, [user, navigate]);
 
   // Load recently viewed vehicles from localStorage
   useEffect(() => {
@@ -60,6 +58,8 @@ function DashboardPage() {
       }
     }
   }, []);
+
+  if (!user) return null;
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();

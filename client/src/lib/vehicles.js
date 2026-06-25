@@ -17,7 +17,13 @@ const random = () => {
   return x - Math.floor(x);
 };
 
-const shuffled = [...combined].sort(() => random() - 0.5);
+const shuffled = [...combined];
+for (let i = shuffled.length - 1; i > 0; i--) {
+  const j = Math.floor(random() * (i + 1));
+  const temp = shuffled[i];
+  shuffled[i] = shuffled[j];
+  shuffled[j] = temp;
+}
 
 const total = shuffled.length;
 const soldCount = Math.round(total * 0.10);
@@ -61,7 +67,7 @@ shuffled.forEach((v) => {
   }
 });
 
-export const vehicles = shuffled;
+export const vehicles = [...shuffled].reverse();
 
 export const formatPrice = (p) => p >= 1_000_000
     ? `$${(p / 1_000_000).toFixed(p % 1_000_000 === 0 ? 0 : 2)}M`

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { VehicleCard } from "@/components/VehicleCard";
 import { vehicles } from "@/lib/vehicles";
 import { useCars } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/cars")({
     head: () => ({
@@ -18,8 +18,13 @@ export const Route = createFileRoute("/cars")({
 function CarsPage() {
     const { data: dbCars } = useCars();
     const [statusFilter, setStatusFilter] = useState("All");
+    const [isMounted, setIsMounted] = useState(false);
 
-    const activeCars = dbCars && dbCars.length > 0 ? dbCars : vehicles.filter((v) => v.category === "car");
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    const activeCars = isMounted && dbCars && dbCars.length > 0 ? dbCars : vehicles.filter((v) => v.category === "car");
 
     const filteredList = activeCars.filter((v) => {
         if (statusFilter === "All") return true;

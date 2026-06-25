@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { vehicles } from "@/lib/vehicles";
 import { VehicleCard } from "./VehicleCard";
 import { useVehicles } from "@/lib/api";
@@ -15,7 +15,11 @@ export function FeaturedVehicles() {
     const [tab, setTab] = useState("all");
     const { user } = useAuth();
     const { data: dbVehicles } = useVehicles(user?.token);
-    const activeVehicles = dbVehicles && dbVehicles.length > 0 ? dbVehicles : vehicles;
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+    const activeVehicles = isMounted && dbVehicles && dbVehicles.length > 0 ? dbVehicles : vehicles;
     const list = tab === "all" ? activeVehicles : activeVehicles.filter((v) => v.category === tab);
     return (<section id="featured" className="mx-auto max-w-7xl px-6 py-32 sm:px-8">
       <div className="mb-16 flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">

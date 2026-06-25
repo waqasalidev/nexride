@@ -165,7 +165,13 @@ const seedData = async () => {
       return x - Math.floor(x);
     };
 
-    const shuffled = [...vehiclesData].sort(() => random() - 0.5);
+    const shuffled = [...vehiclesData];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      const temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
 
     const total = shuffled.length;
     const soldCount = Math.round(total * 0.10);      // 10%

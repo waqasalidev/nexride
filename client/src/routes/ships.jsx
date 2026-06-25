@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { VehicleCard } from "@/components/VehicleCard";
 import { useShips } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { vehicles } from "@/lib/vehicles";
 
 export const Route = createFileRoute("/ships")({
   head: () => ({
@@ -19,8 +20,13 @@ function ShipsPage() {
   const { user } = useAuth();
   const { data: dbShips } = useShips(user?.token);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [isMounted, setIsMounted] = useState(false);
 
-  const activeShips = dbShips || [];
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const activeShips = isMounted && dbShips && dbShips.length > 0 ? dbShips : vehicles.filter((v) => v.category === "ship");
 
   const filteredList = activeShips.filter((v) => {
     if (statusFilter === "All") return true;

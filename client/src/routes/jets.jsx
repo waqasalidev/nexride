@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { VehicleCard } from "@/components/VehicleCard";
 import { vehicles } from "@/lib/vehicles";
 import { useJets } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/jets")({
     head: () => ({
@@ -18,8 +18,13 @@ export const Route = createFileRoute("/jets")({
 function JetsPage() {
     const { data: dbJets } = useJets();
     const [statusFilter, setStatusFilter] = useState("All");
+    const [isMounted, setIsMounted] = useState(false);
 
-    const activeJets = dbJets && dbJets.length > 0 ? dbJets : vehicles.filter((v) => v.category === "jet");
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    const activeJets = isMounted && dbJets && dbJets.length > 0 ? dbJets : vehicles.filter((v) => v.category === "jet");
 
     const filteredList = activeJets.filter((v) => {
         if (statusFilter === "All") return true;

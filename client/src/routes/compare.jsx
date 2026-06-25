@@ -70,7 +70,13 @@ function Column({ v }) {
 
 function ComparePage() {
   const { data: dbVehicles } = useVehicles();
-  const activeList = dbVehicles && dbVehicles.length > 0 ? dbVehicles : vehicles;
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const activeList = isMounted && dbVehicles && dbVehicles.length > 0 ? dbVehicles : vehicles;
 
   const [a, setA] = useState("");
   const [b, setB] = useState("");
