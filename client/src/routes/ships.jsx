@@ -42,7 +42,7 @@ function ShipsPage() {
   }, []);
 
   const fallbackShips = vehicles.filter((v) => v.category === "ship");
-  const activeList = isMounted && dbProducts && dbProducts.length > 0 ? dbProducts : fallbackShips;
+  const activeList = dbProducts !== undefined ? dbProducts : (isMounted ? [] : fallbackShips);
 
   const filterOptions = ["All", "Available", "Featured", "Discounted", "Coming Soon", "Sold"];
 

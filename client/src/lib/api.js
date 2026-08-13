@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+export function getApiUrl(path) {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return API_BASE_URL ? `${API_BASE_URL}${cleanPath}` : cleanPath;
+}
+
 // Fetch paginated, filtered, sorted products from /api/products
 export function useProducts(params = {}, token) {
   const queryString = new URLSearchParams(
@@ -11,7 +18,7 @@ export function useProducts(params = {}, token) {
     queryFn: async () => {
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
-      const url = `/api/products${queryString ? `?${queryString}` : ""}`;
+      const url = getApiUrl(`/api/products${queryString ? `?${queryString}` : ""}`);
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error("Failed to fetch products");
       return res.json();

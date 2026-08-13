@@ -42,7 +42,7 @@ function BikesPage() {
     }, []);
 
     const fallbackBikes = vehicles.filter((v) => v.category === "bike");
-    const activeList = isMounted && dbProducts && dbProducts.length > 0 ? dbProducts : fallbackBikes;
+    const activeList = dbProducts !== undefined ? dbProducts : (isMounted ? [] : fallbackBikes);
 
     const filterOptions = ["All", "Available", "Featured", "Discounted", "Coming Soon", "Sold"];
 

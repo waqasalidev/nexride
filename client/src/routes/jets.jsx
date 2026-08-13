@@ -42,7 +42,7 @@ function JetsPage() {
     }, []);
 
     const fallbackJets = vehicles.filter((v) => v.category === "jet");
-    const activeList = isMounted && dbProducts && dbProducts.length > 0 ? dbProducts : fallbackJets;
+    const activeList = dbProducts !== undefined ? dbProducts : (isMounted ? [] : fallbackJets);
 
     const filterOptions = ["All", "Available", "Featured", "Discounted", "Coming Soon", "Sold"];
 

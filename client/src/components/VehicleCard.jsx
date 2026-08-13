@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext.jsx";
 import { useFavorites, useAddFavorite, useRemoveFavorite, useCreateInquiry } from "@/lib/api";
 import { VehicleViewer3D } from "./VehicleViewer3D.jsx";
 
+import { resolveProductImage, handleImageError } from "@/lib/imageResolver";
+
 export function VehicleCard({ vehicle, index = 0 }) {
   const { user } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
@@ -102,9 +104,10 @@ export function VehicleCard({ vehicle, index = 0 }) {
       >
         <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/5 bg-neutral-900">
           <img
-            src={vehicle.image}
+            src={resolveProductImage(vehicle)}
             alt={`${vehicle.brand} ${vehicle.model}`}
             loading="lazy"
+            onError={(e) => handleImageError(e, vehicle?.category)}
             className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${vehicle.status === "Sold" ? "grayscale opacity-50" : ""}`}
           />
           {/* Status Badges */}

@@ -41,9 +41,9 @@ function CarsPage() {
         setIsMounted(true);
     }, []);
 
-    // Fallback if API hasn't loaded or MongoDB has no cars
+    // Active list resolution: prefer MongoDB API products when available
     const fallbackCars = vehicles.filter((v) => v.category === "car");
-    const activeList = isMounted && dbProducts && dbProducts.length > 0 ? dbProducts : fallbackCars;
+    const activeList = dbProducts !== undefined ? dbProducts : (isMounted ? [] : fallbackCars);
 
     const filterOptions = ["All", "Available", "Featured", "Discounted", "Coming Soon", "Sold"];
 
