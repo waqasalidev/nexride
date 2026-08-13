@@ -210,21 +210,30 @@ const seedData = async () => {
       const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
       const isFeatured = vData.isFeatured || false;
 
-      const vehicle = await Vehicle.create({
-        ...vData,
-        price: discountedPrice, // Active price
-        originalPrice,
-        discountedPrice,
-        discountPercentage: discount,
-        isFeatured,
-        user: adminUser._id,
-        sellerId: adminUser._id,
-      });
+      const title = vData.title || `${vData.year} ${vData.brand} ${vData.model}`;
+      const slug = `${vData.brand}-${vData.model}-${vData.year}`.toLowerCase().replace(/[^a-z0-9]+/g, "-") + `-${Math.random().toString(36).substring(2, 6)}`;
+      const locations = [
+        { country: "United States", city: "Miami", address: "100 Ocean Drive" },
+        { country: "United States", city: "Los Angeles", address: "Sunset Boulevard" },
+        { country: "United Kingdom", city: "London", address: "Mayfair 42" },
+        { country: "Monaco", city: "Monte Carlo", address: "Port Hercules" },
+        { country: "United Arab Emirates", city: "Dubai", address: "Downtown Blvd" },
+        { country: "Germany", city: "Stuttgart", address: "Porscheplatz 1" },
+        { country: "Italy", city: "Maranello", address: "Via Abetone" },
+      ];
+      const loc = locations[Math.floor(Math.random() * locations.length)];
+      const cond = vData.year >= 2024 ? "New" : "Used";
+      const avail = vData.status === "Sold" ? "Sold" : "Available";
 
-      // Save in specific collection with matching ID
-      const subDoc = {
-        _id: vehicle._id,
+      const enrichedDoc = {
         ...vData,
+        title,
+        slug,
+        shortDescription: vData.description ? vData.description.substring(0, 130) + "..." : "Exquisite premium vehicle listing.",
+        location: loc,
+        condition: cond,
+        availability: avail,
+        currency: "USD",
         price: discountedPrice,
         originalPrice,
         discountedPrice,
@@ -232,6 +241,53 @@ const seedData = async () => {
         isFeatured,
         user: adminUser._id,
         sellerId: adminUser._id,
+      };
+
+      if (vData.category === "car") {
+        enrichedDoc.carSpecs = {
+          engine: vData.fuel === "Electric" ? "Dual Electric Motors" : "V8 Twin-Turbo",
+          transmission: "8-Speed Automatic",
+          fuelType: vData.fuel || "Gasoline",
+          mileage: vData.mileage || "0 mi",
+          horsepower: vData.hp || "600 HP",
+          drivetrain: "AWD",
+          seats: 2,
+        };
+      } else if (vData.category === "bike") {
+        enrichedDoc.bikeSpecs = {
+          engine: "1,000 cc Inline-4",
+          transmission: "6-Speed Quickshift",
+          fuelType: vData.fuel || "Gasoline",
+          mileage: vData.mileage || "0 mi",
+          horsepower: vData.hp || "200 HP",
+          topSpeed: vData.topSpeed || "186 mph",
+        };
+      } else if (vData.category === "jet") {
+        enrichedDoc.jetSpecs = {
+          manufacturer: vData.brand,
+          aircraftModel: vData.model,
+          range: "4,500 nm",
+          cruisingSpeed: vData.topSpeed || "Mach 0.85",
+          passengerCapacity: 12,
+          engineType: "Turbofan",
+        };
+      } else if (vData.category === "ship") {
+        enrichedDoc.shipSpecs = {
+          manufacturer: vData.brand,
+          vesselType: vData.subcategory || "Luxury Yacht",
+          length: "85 ft",
+          beam: "22 ft",
+          capacity: "8 Guests",
+          engineType: "Twin Marine Diesel",
+          cruisingSpeed: vData.topSpeed || "24 knots",
+        };
+      }
+
+      const vehicle = await Vehicle.create(enrichedDoc);
+
+      const subDoc = {
+        _id: vehicle._id,
+        ...enrichedDoc,
       };
 
       if (vehicle.category === "car") {

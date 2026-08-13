@@ -20,6 +20,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import favoriteRoutes from "./routes/favoriteRoutes.js";
 import inquiryRoutes from "./routes/inquiryRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use("/api/uploads", express.static(uploadsDir));
 
 // Mount API Routes
+app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);

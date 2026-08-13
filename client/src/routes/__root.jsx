@@ -41,6 +41,8 @@ function ErrorComponent({ error, reset }) {
       </div>
     </div>);
 }
+import { Toaster } from "sonner";
+
 export const Route = createRootRouteWithContext()({
     head: () => ({
         meta: [
@@ -110,6 +112,7 @@ function RootComponent() {
     return (<QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Navigation />
+        <Toaster position="top-right" theme="dark" richColors />
         <main className="min-h-screen">
           <Outlet />
         </main>

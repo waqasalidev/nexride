@@ -1,5 +1,156 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+// Fetch paginated, filtered, sorted products from /api/products
+export function useProducts(params = {}, token) {
+  const queryString = new URLSearchParams(
+    Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+  ).toString();
+
+  return useQuery({
+    queryKey: ["products", queryString, token],
+    queryFn: async () => {
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const url = `/api/products${queryString ? `?${queryString}` : ""}`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error("Failed to fetch products");
+      return res.json();
+    },
+  });
+}
+
+// Fetch candidate products from external API endpoint
+export function useExternalCandidates(category = "all", token) {
+  return useQuery({
+    queryKey: ["externalCandidates", category, token],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/external-fetch?category=${category}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch external product candidates");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+}
+
+// Batch import selected external products into MongoDB
+export function useImportProducts(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (items) => {
+      const res = await fetch("/api/products/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to import products");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["jets"] });
+      queryClient.invalidateQueries({ queryKey: ["ships"] });
+      queryClient.invalidateQueries({ queryKey: ["externalCandidates"] });
+    },
+  });
+}
+
+// Create product mutation
+export function useCreateProduct(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (productData) => {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(productData),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to create product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["jets"] });
+      queryClient.invalidateQueries({ queryKey: ["ships"] });
+    },
+  });
+}
+
+// Update product mutation
+export function useUpdateProduct(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }) => {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["jets"] });
+      queryClient.invalidateQueries({ queryKey: ["ships"] });
+    },
+  });
+}
+
+// Delete product mutation
+export function useDeleteProduct(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to delete product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["jets"] });
+      queryClient.invalidateQueries({ queryKey: ["ships"] });
+    },
+  });
+}
+
 // Fetch all vehicles
 export function useVehicles(token) {
   return useQuery({

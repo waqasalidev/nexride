@@ -239,10 +239,10 @@ export function VehicleCard({ vehicle, index = 0 }) {
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-display text-3xl font-bold text-white leading-tight">
-                        {vehicle.brand} <span className="text-cyan-glow">{vehicle.model}</span>
+                        {vehicle.title || `${vehicle.brand} ${vehicle.model}`}
                       </h2>
                       <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
-                        {vehicle.year} • {vehicle.subcategory}
+                        {vehicle.year} • {vehicle.subcategory || vehicle.category.toUpperCase()} • {vehicle.condition || "Used"} • {vehicle.location?.city ? `${vehicle.location.city}, ${vehicle.location.country}` : "Miami, USA"}
                       </p>
                     </div>
 
@@ -250,28 +250,28 @@ export function VehicleCard({ vehicle, index = 0 }) {
                       <div className="flex items-center gap-3">
                         <Zap className="text-cyan-glow shrink-0" size={16} />
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest text-white/40">Output</p>
-                          <p className="text-xs font-bold text-white">{vehicle.hp}</p>
+                          <p className="text-[9px] uppercase tracking-widest text-white/40">Output / Power</p>
+                          <p className="text-xs font-bold text-white">{vehicle.hp || vehicle.carSpecs?.horsepower || vehicle.bikeSpecs?.horsepower || "—"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Gauge className="text-cyan-glow shrink-0" size={16} />
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest text-white/40">Vmax</p>
-                          <p className="text-xs font-bold text-white">{vehicle.topSpeed}</p>
+                          <p className="text-[9px] uppercase tracking-widest text-white/40">Vmax / Speed</p>
+                          <p className="text-xs font-bold text-white">{vehicle.topSpeed || vehicle.bikeSpecs?.topSpeed || vehicle.jetSpecs?.cruisingSpeed || vehicle.shipSpecs?.cruisingSpeed || "—"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Shield className="text-cyan-glow shrink-0" size={16} />
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest text-white/40">Usage</p>
-                          <p className="text-xs font-bold text-white">{vehicle.mileage}</p>
+                          <p className="text-[9px] uppercase tracking-widest text-white/40">Usage / Hours</p>
+                          <p className="text-xs font-bold text-white">{vehicle.mileage || "0 mi"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <CircleDollarSign className="text-cyan-glow shrink-0" size={16} />
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest text-white/40">Value</p>
+                          <p className="text-[9px] uppercase tracking-widest text-white/40">Price Value</p>
                           {vehicle.discountPercentage > 0 ? (
                             <div className="flex flex-col">
                               <span className="text-xs font-bold text-cyan-glow">{formatPrice(vehicle.price)}</span>
@@ -287,9 +287,44 @@ export function VehicleCard({ vehicle, index = 0 }) {
                     <div className="space-y-2">
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/60">Asset Overview</h4>
                       <p className="text-xs text-white/60 leading-relaxed">
-                        Exquisite craftsmanship meets apex performance. This listing features original specifications, flawless service history, and verified logistics. Select 3D rotation to scan aerodynamics.
+                        {vehicle.description || vehicle.shortDescription || "Exquisite craftsmanship meets apex performance. This listing features original specifications, flawless service history, and verified logistics. Select 3D rotation to scan aerodynamics."}
                       </p>
                     </div>
+
+                    {/* Dynamic Specs details */}
+                    {(vehicle.carSpecs || vehicle.bikeSpecs || vehicle.jetSpecs || vehicle.shipSpecs) && (
+                      <div className="space-y-2 border-t border-white/5 pt-3">
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-glow">Category Specs</h4>
+                        <div className="grid grid-cols-2 gap-2 text-[10px] text-white/70">
+                          {vehicle.category === "car" && vehicle.carSpecs && (
+                            <>
+                              {vehicle.carSpecs.engine && <div><span className="text-white/40">Engine:</span> {vehicle.carSpecs.engine}</div>}
+                              {vehicle.carSpecs.transmission && <div><span className="text-white/40">Gearbox:</span> {vehicle.carSpecs.transmission}</div>}
+                              {vehicle.carSpecs.drivetrain && <div><span className="text-white/40">Drive:</span> {vehicle.carSpecs.drivetrain}</div>}
+                              {vehicle.carSpecs.seats && <div><span className="text-white/40">Seats:</span> {vehicle.carSpecs.seats}</div>}
+                            </>
+                          )}
+                          {vehicle.category === "bike" && vehicle.bikeSpecs && (
+                            <>
+                              {vehicle.bikeSpecs.engine && <div><span className="text-white/40">Engine:</span> {vehicle.bikeSpecs.engine}</div>}
+                              {vehicle.bikeSpecs.transmission && <div><span className="text-white/40">Gearbox:</span> {vehicle.bikeSpecs.transmission}</div>}
+                            </>
+                          )}
+                          {vehicle.category === "jet" && vehicle.jetSpecs && (
+                            <>
+                              {vehicle.jetSpecs.range && <div><span className="text-white/40">Range:</span> {vehicle.jetSpecs.range}</div>}
+                              {vehicle.jetSpecs.passengerCapacity && <div><span className="text-white/40">Capacity:</span> {vehicle.jetSpecs.passengerCapacity} Passengers</div>}
+                            </>
+                          )}
+                          {vehicle.category === "ship" && vehicle.shipSpecs && (
+                            <>
+                              {vehicle.shipSpecs.length && <div><span className="text-white/40">Length:</span> {vehicle.shipSpecs.length}</div>}
+                              {vehicle.shipSpecs.capacity && <div><span className="text-white/40">Capacity:</span> {vehicle.shipSpecs.capacity}</div>}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-4 mt-8 border-t border-white/5 pt-6">
