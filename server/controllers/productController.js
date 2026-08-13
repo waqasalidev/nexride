@@ -3,8 +3,14 @@ import Car from "../models/Car.js";
 import Bike from "../models/Bike.js";
 import Jet from "../models/Jet.js";
 import Ship from "../models/Ship.js";
-import { saveBase64Image, deleteLocalImage } from "../utils/imageHandler.js";
-import { fetchExternalCandidates, normalizeExternalProduct } from "../services/externalApiService.js";
+import {
+  getProviderStatuses,
+  testProviderConnection,
+  fetchProviderCandidates,
+  importSelectedProducts,
+  syncProviderInventory,
+  normalizeProduct,
+} from "../services/externalApiService.js";
 
 // Helper to save document in matching sub-collection (cars, bikes, jets, ships)
 const saveToSubCollection = async (vehicleData) => {
@@ -546,13 +552,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-import {
-  getProviderStatuses,
-  testProviderConnection,
-  fetchProviderCandidates,
-  importSelectedProducts,
-  syncProviderInventory,
-} from "../services/externalApiService.js";
+
 
 // @desc    Get status of all configured external inventory providers
 // @route   GET /api/products/external/providers
