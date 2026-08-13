@@ -546,13 +546,46 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// @desc    Fetch external candidates for import
-// @route   GET /api/products/external-fetch
+import {
+  getProviderStatuses,
+  testProviderConnection,
+  fetchProviderCandidates,
+  importSelectedProducts,
+  syncProviderInventory,
+} from "../services/externalApiService.js";
+
+// @desc    Get status of all configured external inventory providers
+// @route   GET /api/products/external/providers
 // @access  Private/Admin
-export const fetchExternalCandidatesController = async (req, res) => {
+export const getProviderStatusesController = async (req, res) => {
   try {
-    const category = req.query.category || "all";
-    const candidates = await fetchExternalCandidates(category);
+    const statuses = await getProviderStatuses();
+    res.json(statuses);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Test connection to a specific provider
+// @route   POST /api/products/external/test/:provider
+// @access  Private/Admin
+export const testProviderConnectionController = async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const result = await testProviderConnection(provider);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Fetch external candidates from provider for preview
+// @route   GET /api/products/external/:provider
+// @access  Private/Admin
+export const fetchProviderInventoryController = async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const candidates = await fetchProviderCandidates(provider);
     res.json(candidates);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -569,37 +602,31 @@ export const importProductsController = async (req, res) => {
       return res.status(400).json({ success: false, message: "No items provided for import" });
     }
 
-    const importedProducts = [];
-    const skippedDocIds = [];
-
-    for (const rawItem of items) {
-      const normalized = normalizeExternalProduct(rawItem);
-      
-      // Duplicate prevention check by externalId
-      if (normalized.externalId) {
-        const existing = await Vehicle.findOne({ externalId: normalized.externalId });
-        if (existing) {
-          skippedDocIds.push(normalized.externalId);
-          continue;
-        }
-      }
-
-      normalized.user = req.user._id;
-      normalized.sellerId = req.user._id;
-
-      const created = await Vehicle.create(normalized);
-      await saveToSubCollection({ _id: created._id, ...normalized });
-      importedProducts.push(created);
-    }
-
+    const summary = await importSelectedProducts(items, req.user._id);
     res.status(201).json({
       success: true,
-      message: `Imported ${importedProducts.length} product(s). ${skippedDocIds.length > 0 ? `${skippedDocIds.length} skipped (already exists).` : ""}`,
-      importedCount: importedProducts.length,
-      skippedCount: skippedDocIds.length,
-      importedProducts,
+      message: `Import complete. Imported: ${summary.imported}, Updated: ${summary.updated}, Skipped: ${summary.skipped}, Failed: ${summary.failed}`,
+      ...summary,
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Bulk sync provider inventory into MongoDB
+// @route   POST /api/products/sync
+// @access  Private/Admin
+export const syncProductsController = async (req, res) => {
+  try {
+    const provider = req.body.provider || "all";
+    const summary = await syncProviderInventory(provider, req.user._id);
+    res.json({
+      success: true,
+      message: `Sync finished for provider '${provider}'. Imported: ${summary.imported}, Updated: ${summary.updated}, Skipped: ${summary.skipped}, Failed: ${summary.failed}`,
+      ...summary,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

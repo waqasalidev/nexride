@@ -1,174 +1,186 @@
 import Vehicle from "../models/Vehicle.js";
+import Car from "../models/Car.js";
+import Bike from "../models/Bike.js";
+import Jet from "../models/Jet.js";
+import Ship from "../models/Ship.js";
+import { fetchCarDatabaseInventory, fetchCarImagesInventory } from "./carApiService.js";
+import { fetchMotorcycleInventory } from "./motorcycleApiService.js";
+import { fetchJetInventory } from "./jetApiService.js";
+import { fetchBoatInventory } from "./boatApiService.js";
 
-// Mock external product dataset providing realistic inventory for Cars, Bikes, Jets, and Ships
-// Can be extended or connected to a real external REST API (e.g. rapidapi, NHTSA, custom partner API)
-const EXTERNAL_CATALOG_CANDIDATES = [
-  {
-    externalId: "ext-car-001",
-    title: "2026 Aston Martin Valhalla Hybrid Hypercar",
-    slug: "aston-martin-valhalla-2026",
-    brand: "Aston Martin",
-    model: "Valhalla",
-    year: 2026,
-    price: 800000,
-    currency: "USD",
+// Master Providers Catalog Configuration
+export const PROVIDERS_CONFIG = {
+  carDatabase: {
+    id: "carDatabase",
+    name: "CarDatabase API",
     category: "car",
-    subcategory: "Mid-Engine Hybrid",
-    description: "Aston Martin's revolutionary mid-engine hybrid supercar featuring a twin-turbo V8 engine coupled with dual electric motors producing 937 HP.",
-    shortDescription: "Apex hybrid engineering with active aerodynamics.",
-    location: { country: "United Kingdom", city: "Gaydon", address: "Banbury Road" },
-    condition: "New",
-    availability: "Available",
-    image: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?w=800&auto=format&fit=crop&q=80"
-    ],
-    features: ["Active Aerodynamics", "F1 Drag Reduction System", "Full Carbon Monocoque", "Dual Clutch 8-Speed"],
-    carSpecs: {
-      engine: "4.0L Twin-Turbo V8 + Electric Motors",
-      transmission: "8-Speed Dual-Clutch",
-      fuelType: "Hybrid",
-      mileage: "0 mi",
-      horsepower: "937 HP",
-      drivetrain: "AWD",
-      seats: 2
-    },
-    mileage: "0 mi",
-    fuel: "Hybrid",
-    hp: "937 HP",
-    topSpeed: "217 mph",
-    status: "Available",
-    isFeatured: true
+    envKey: "CAR_DATABASE_API_KEY",
+    description: "Global automotive specs & dealer inventory feed",
+    fetchFn: (key) => fetchCarDatabaseInventory(key),
   },
-  {
-    externalId: "ext-bike-001",
-    title: "2025 Ducati Panigale V4 SP2",
-    slug: "ducati-panigale-v4-sp2-2025",
-    brand: "Ducati",
-    model: "Panigale V4 SP2",
-    year: 2025,
-    price: 40500,
-    currency: "USD",
+  carImages: {
+    id: "carImages",
+    name: "CarImages API",
+    category: "car",
+    envKey: "CAR_IMAGES_API_KEY",
+    description: "High-resolution vehicle gallery & imagery provider",
+    fetchFn: (key) => fetchCarImagesInventory(key),
+  },
+  vehdb: {
+    id: "vehdb",
+    name: "VehDB Motorcycle API",
     category: "bike",
-    subcategory: "Track Superbike",
-    description: "Numbered limited edition superbike with Winter Test livery, carbon fiber rims, STM-EVO SBK dry clutch, and Brembo Stylema R calipers.",
-    shortDescription: "Track-ready numbered limited edition superbike.",
-    location: { country: "Italy", city: "Bologna", address: "Via Cavalieri Ducati" },
-    condition: "New",
-    availability: "Available",
-    image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800&auto=format&fit=crop&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800&auto=format&fit=crop&q=80"
-    ],
-    features: ["STM-EVO SBK Dry Clutch", "Carbon Fiber Rims", "Öhlins NPX 25/30 Pressurized Fork", "Ducati Data Analyzer+"],
-    bikeSpecs: {
-      engine: "1,103 cc Desmosedici Stradale V4",
-      transmission: "6-Speed with Ducati Quick Shift",
-      fuelType: "Gasoline",
-      mileage: "0 mi",
-      horsepower: "215.5 HP",
-      topSpeed: "186 mph"
-    },
-    mileage: "0 mi",
-    fuel: "Gasoline",
-    hp: "215.5 HP",
-    topSpeed: "186 mph",
-    status: "Available",
-    isFeatured: true
+    envKey: "VEHDB_API_KEY",
+    description: "Superbike & custom motorcycle dataset",
+    fetchFn: (key) => fetchMotorcycleInventory(key),
   },
-  {
-    externalId: "ext-jet-001",
-    title: "2025 Gulfstream G700 Executive Jet",
-    slug: "gulfstream-g700-2025",
-    brand: "Gulfstream",
-    model: "G700",
-    year: 2025,
-    price: 75000000,
-    currency: "USD",
+  jetApi: {
+    id: "jetApi",
+    name: "JetAPI Aviation Feed",
     category: "jet",
-    subcategory: "Ultra Long Range",
-    description: "The flagship Gulfstream G700 features the industry's most spacious cabin, up to five living areas, and Rolls-Royce Pearl 700 engines.",
-    shortDescription: "Ultra long-range flagship private jet.",
-    location: { country: "United States", city: "Savannah", address: "Travis Field Rd" },
-    condition: "New",
-    availability: "Available",
-    image: "https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=800&auto=format&fit=crop&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1559685303-34e8574ff053?w=800&auto=format&fit=crop&q=80"
-    ],
-    features: ["Symmetry Flight Deck", "Ultra-High-Speed Ka-Band Wi-Fi", "Master Suite with Shower", "Circadian Lighting System"],
-    jetSpecs: {
-      manufacturer: "Gulfstream Aerospace",
-      aircraftModel: "G700",
-      range: "7,750 nm",
-      cruisingSpeed: "Mach 0.90",
-      passengerCapacity: 19,
-      engineType: "Rolls-Royce Pearl 700"
-    },
-    mileage: "0 hrs",
-    fuel: "Jet Fuel",
-    hp: "18,250 lbf thrust",
-    topSpeed: "Mach 0.925",
-    status: "Available",
-    isFeatured: true
+    envKey: "JET_API_KEY",
+    description: "Executive jet & long-range aviation market data",
+    fetchFn: (key) => fetchJetInventory(key),
   },
-  {
-    externalId: "ext-ship-001",
-    title: "2025 Sunseeker Ocean 182 Superyacht",
-    slug: "sunseeker-ocean-182-2025",
-    brand: "Sunseeker",
-    model: "Ocean 182",
-    year: 2025,
-    price: 14200000,
-    currency: "USD",
+  boats: {
+    id: "boats",
+    name: "Boats.com Inventory API",
     category: "ship",
-    subcategory: "Tri-Deck Superyacht",
-    description: "The Sunseeker Ocean 182 offers unprecedented interior volume with a enclosed upper deck, panoramic windows, and twin MAN 2000 HP engines.",
-    shortDescription: "Enclosed flybridge tri-deck luxury yacht.",
-    location: { country: "Monaco", city: "Monte Carlo", address: "Port Hercules" },
-    condition: "New",
-    availability: "Available",
-    image: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&auto=format&fit=crop&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop&q=80"
-    ],
-    features: ["Enclosed Flybridge", "Hydraulic Bathing Platform", "Beach Club with BBQ", "Zero-Speed Fin Stabilizers"],
-    shipSpecs: {
-      manufacturer: "Sunseeker International",
-      vesselType: "Tri-Deck Superyacht",
-      length: "88 ft 7 in",
-      beam: "23 ft 6 in",
-      capacity: "10 Guests / 4 Crew",
-      engineType: "Twin MAN V12-2000",
-      cruisingSpeed: "27 knots"
-    },
-    mileage: "0 hrs",
-    fuel: "Marine Diesel",
-    hp: "4,000 HP Total",
-    topSpeed: "27 knots",
-    status: "Available",
-    isFeatured: true
-  }
-];
+    envKey: "BOATS_API_KEY",
+    description: "Luxury yacht & marine vessel inventory system",
+    fetchFn: (key) => fetchBoatInventory(key),
+  },
+};
 
-// Helper to normalize external products into NexRide schema format
-export const normalizeExternalProduct = (item) => {
+// 1. Get status overview of all configured external providers
+export const getProviderStatuses = async () => {
+  const statuses = [];
+
+  for (const key of Object.keys(PROVIDERS_CONFIG)) {
+    const config = PROVIDERS_CONFIG[key];
+    const apiKey = process.env[config.envKey];
+    const isConfigured = !!apiKey && apiKey.trim().length > 0;
+
+    statuses.push({
+      id: config.id,
+      name: config.name,
+      category: config.category,
+      envKey: config.envKey,
+      description: config.description,
+      isConfigured,
+      status: isConfigured ? "Configured" : "Not configured",
+    });
+  }
+
+  return statuses;
+};
+
+// 2. Test specific provider connection
+export const testProviderConnection = async (providerId) => {
+  const config = PROVIDERS_CONFIG[providerId];
+  if (!config) {
+    throw new Error(`Unknown provider: ${providerId}`);
+  }
+
+  const apiKey = process.env[config.envKey];
+  const isConfigured = !!apiKey && apiKey.trim().length > 0;
+
+  try {
+    const result = await config.fetchFn(apiKey);
+    return {
+      provider: providerId,
+      name: config.name,
+      isConfigured,
+      status: isConfigured ? (result.success ? "Working" : "Failed") : "Not configured",
+      message: result.message,
+      itemCount: result.items ? result.items.length : 0,
+      testedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    return {
+      provider: providerId,
+      name: config.name,
+      isConfigured,
+      status: "Failed",
+      message: err.message,
+      itemCount: 0,
+      testedAt: new Date().toISOString(),
+    };
+  }
+};
+
+// 3. Fetch candidates for preview (marks already imported candidates)
+export const fetchProviderCandidates = async (providerOrCategory = "all") => {
+  let candidates = [];
+
+  // Check if providerOrCategory matches a specific provider key
+  if (PROVIDERS_CONFIG[providerOrCategory]) {
+    const config = PROVIDERS_CONFIG[providerOrCategory];
+    const apiKey = process.env[config.envKey];
+    const res = await config.fetchFn(apiKey);
+    candidates = res.items || [];
+  } else {
+    // Category match or "all"
+    for (const key of Object.keys(PROVIDERS_CONFIG)) {
+      const config = PROVIDERS_CONFIG[key];
+      if (providerOrCategory === "all" || config.category === providerOrCategory) {
+        const apiKey = process.env[config.envKey];
+        const res = await config.fetchFn(apiKey);
+        candidates.push(...(res.items || []));
+      }
+    }
+  }
+
+  // Cross-reference MongoDB for compound uniqueness (source + externalId)
+  const compoundQueries = candidates
+    .filter((c) => c.source && c.externalId)
+    .map((c) => ({ source: c.source, externalId: c.externalId }));
+
+  let existingDocs = [];
+  if (compoundQueries.length > 0) {
+    existingDocs = await Vehicle.find({ $or: compoundQueries }).select("source externalId");
+  }
+
+  const existingSet = new Set(existingDocs.map((doc) => `${doc.source}:${doc.externalId}`));
+
+  return candidates.map((candidate) => ({
+    ...candidate,
+    isImported: existingSet.has(`${candidate.source}:${candidate.externalId}`),
+  }));
+};
+
+// 4. Normalize item to standard NexRide Vehicle Schema
+export const normalizeProduct = (item, defaultSource = "manual") => {
   const brand = item.brand || "Exclusive";
   const model = item.model || "Product";
-  const title = item.title || `${item.year || 2025} ${brand} ${model}`;
-  const slug = item.slug || `${brand}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const year = Number(item.year) || new Date().getFullYear();
+  const title = item.title || `${year} ${brand} ${model}`;
+  const slug = item.slug || `${brand}-${model}-${year}`.toLowerCase().replace(/[^a-z0-9]+/g, "-") + `-${Math.random().toString(36).substring(2, 6)}`;
+  const source = item.source || defaultSource;
+  const externalId = item.externalId || `ext-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
+  // Normalize image with fallbacks
+  let primaryImage = item.image || item.thumbnail;
+  let gallery = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
+
+  if (!primaryImage && gallery.length > 0) {
+    primaryImage = gallery[0];
+  }
+
+  if (!primaryImage) {
+    primaryImage = "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=600&auto=format&fit=crop&q=80";
+  }
+
+  if (gallery.length === 0) {
+    gallery = [primaryImage];
+  }
 
   return {
-    externalId: item.externalId || `ext-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     title,
     slug,
     brand,
     model,
-    year: Number(item.year) || new Date().getFullYear(),
+    year,
     price: Number(item.price) || 100000,
     originalPrice: Number(item.price) || 100000,
     discountedPrice: Number(item.price) || 100000,
@@ -176,16 +188,12 @@ export const normalizeExternalProduct = (item) => {
     category: item.category || "car",
     subcategory: item.subcategory || "",
     description: item.description || "",
-    shortDescription: item.shortDescription || item.description?.substring(0, 120) || "",
-    location: {
-      country: item.location?.country || "United States",
-      city: item.location?.city || "Miami",
-      address: item.location?.address || "",
-    },
+    shortDescription: item.shortDescription || (item.description ? item.description.substring(0, 140) : ""),
+    location: item.location || { country: "United States", city: "Miami", address: "" },
     condition: item.condition || "New",
     availability: item.availability || "Available",
-    image: item.image || "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=600&auto=format&fit=crop&q=80",
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [item.image],
+    image: primaryImage,
+    images: gallery,
     features: Array.isArray(item.features) ? item.features : [],
     carSpecs: item.carSpecs || {},
     bikeSpecs: item.bikeSpecs || {},
@@ -198,42 +206,91 @@ export const normalizeExternalProduct = (item) => {
     status: item.status || "Available",
     isFeatured: !!item.isFeatured,
     stock: 1,
+    externalId,
+    source,
+    sourceUrl: item.sourceUrl || "",
   };
 };
 
-// Fetch external candidates (filters candidates if already imported)
-export const fetchExternalCandidates = async (categoryFilter = null) => {
-  // If an external API URL is configured in process.env, attempt fetching from it
-  let candidates = [...EXTERNAL_CATALOG_CANDIDATES];
+// Helper for sub-collection persistence
+const saveSubCollectionDoc = async (doc) => {
+  const subDoc = { _id: doc._id, ...doc.toObject() };
+  if (doc.category === "car") await Car.create(subDoc);
+  else if (doc.category === "bike") await Bike.create(subDoc);
+  else if (doc.category === "jet") await Jet.create(subDoc);
+  else if (doc.category === "ship") await Ship.create(subDoc);
+};
 
-  if (process.env.EXTERNAL_API_URL) {
+// Helper for sub-collection update
+const updateSubCollectionDoc = async (doc) => {
+  const id = doc._id;
+  await Car.findByIdAndDelete(id);
+  await Bike.findByIdAndDelete(id);
+  await Jet.findByIdAndDelete(id);
+  await Ship.findByIdAndDelete(id);
+
+  const subDoc = { _id: id, ...doc.toObject() };
+  if (doc.category === "car") await Car.create(subDoc);
+  else if (doc.category === "bike") await Bike.create(subDoc);
+  else if (doc.category === "jet") await Jet.create(subDoc);
+  else if (doc.category === "ship") await Ship.create(subDoc);
+};
+
+// 5. Import selected items with duplicate detection & source tracking
+export const importSelectedProducts = async (rawItems, userId) => {
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  let failed = 0;
+  const results = [];
+
+  for (const rawItem of rawItems) {
     try {
-      const response = await fetch(process.env.EXTERNAL_API_URL, {
-        headers: process.env.EXTERNAL_API_KEY ? { "X-Api-Key": process.env.EXTERNAL_API_KEY } : {},
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          candidates = data.map(normalizeExternalProduct);
-        }
+      if (!rawItem.title && (!rawItem.brand || !rawItem.model)) {
+        skipped++;
+        results.push({ item: rawItem.title || "Unknown", status: "Skipped", reason: "Missing title or brand/model" });
+        continue;
+      }
+
+      const normalized = normalizeProduct(rawItem);
+      normalized.user = userId;
+      normalized.sellerId = userId;
+
+      // Duplicate check by source + externalId
+      const existing = await Vehicle.findOne({ source: normalized.source, externalId: normalized.externalId });
+
+      if (existing) {
+        // Update existing record
+        Object.assign(existing, normalized);
+        const saved = await existing.save();
+        await updateSubCollectionDoc(saved);
+        updated++;
+        results.push({ item: normalized.title, status: "Updated", id: saved._id });
+      } else {
+        // Create new record
+        const created = await Vehicle.create(normalized);
+        await saveSubCollectionDoc(created);
+        imported++;
+        results.push({ item: normalized.title, status: "Imported", id: created._id });
       }
     } catch (err) {
-      console.warn("External API call failed, using default candidate pool:", err.message);
+      failed++;
+      results.push({ item: rawItem.title || "Unknown", status: "Failed", reason: err.message });
     }
   }
 
-  // Filter by category if requested
-  if (categoryFilter && categoryFilter !== "all") {
-    candidates = candidates.filter((c) => c.category === categoryFilter);
-  }
+  return {
+    fetched: rawItems.length,
+    imported,
+    updated,
+    skipped,
+    failed,
+    results,
+  };
+};
 
-  // Check MongoDB for existing externalIds
-  const externalIds = candidates.map((c) => c.externalId);
-  const existingDocIds = await Vehicle.find({ externalId: { $in: externalIds } }).select("externalId");
-  const importedSet = new Set(existingDocIds.map((doc) => doc.externalId));
-
-  return candidates.map((candidate) => ({
-    ...candidate,
-    isImported: importedSet.has(candidate.externalId),
-  }));
+// 6. Bulk sync provider inventory into MongoDB
+export const syncProviderInventory = async (targetProviderOrAll = "all", userId) => {
+  const candidates = await fetchProviderCandidates(targetProviderOrAll);
+  return await importSelectedProducts(candidates, userId);
 };

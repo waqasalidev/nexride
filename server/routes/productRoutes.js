@@ -8,8 +8,11 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  fetchExternalCandidatesController,
+  getProviderStatusesController,
+  testProviderConnectionController,
+  fetchProviderInventoryController,
   importProductsController,
+  syncProductsController,
 } from "../controllers/productController.js";
 import { protect, admin, optionalProtect } from "../middleware/authMiddleware.js";
 
@@ -19,8 +22,14 @@ const router = express.Router();
 router.get("/featured", getFeaturedProducts);
 router.get("/search", searchProducts);
 router.get("/category/:category", getProductsByCategory);
-router.get("/external-fetch", protect, admin, fetchExternalCandidatesController);
+
+// External API integration routes (Protected Admin)
+router.get("/external/providers", protect, admin, getProviderStatusesController);
+router.get("/external/status", protect, admin, getProviderStatusesController);
+router.post("/external/test/:provider", protect, admin, testProviderConnectionController);
+router.get("/external/:provider", protect, admin, fetchProviderInventoryController);
 router.post("/import", protect, admin, importProductsController);
+router.post("/sync", protect, admin, syncProductsController);
 
 // Root route
 router.route("/").get(optionalProtect, getProducts).post(protect, createProduct);

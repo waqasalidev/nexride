@@ -56,6 +56,10 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useProviderStatuses,
+  useTestProvider,
+  useProviderInventory,
+  useSyncProducts,
 } from "../lib/api.js";
 import { formatPrice } from "../lib/vehicles.js";
 import {
@@ -196,11 +200,45 @@ function AdminPage() {
   const updateProductMutation = useUpdateProduct(user.token);
   const deleteProductMutation = useDeleteProduct(user.token);
   const importProductsMutation = useImportProducts(user.token);
+  const syncProductsMutation = useSyncProducts(user.token);
 
-  // External import state
+  // External Multi-API state & hooks
+  const { data: providerStatuses = [], refetch: refetchStatuses } = useProviderStatuses(user.token);
+  const testProviderMutation = useTestProvider(user.token);
+  const [testingProviderId, setTestingProviderId] = useState(null);
+  const [syncReport, setSyncReport] = useState(null);
+
   const [importCategoryFilter, setImportCategoryFilter] = useState("all");
   const { data: externalCandidates = [], isLoading: loadingCandidates, refetch: refetchExternal } = useExternalCandidates(importCategoryFilter, user.token);
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
+
+  const handleTestProvider = async (providerId) => {
+    setTestingProviderId(providerId);
+    try {
+      const res = await testProviderMutation.mutateAsync(providerId);
+      if (res.status === "Working") {
+        toast.success(`${res.name}: Connection working cleanly (${res.itemCount} items ready)`);
+      } else if (res.status === "Not configured") {
+        toast.info(`${res.name}: Provider API key not configured in server/.env`);
+      } else {
+        toast.error(`${res.name}: Test failed (${res.message})`);
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to test provider connection");
+    } finally {
+      setTestingProviderId(null);
+    }
+  };
+
+  const handleExecuteSync = async (targetProvider = "all") => {
+    try {
+      const res = await syncProductsMutation.mutateAsync(targetProvider);
+      setSyncReport(res);
+      toast.success(res.message || "Sync finished successfully!");
+    } catch (err) {
+      toast.error(err.message || "Sync failed");
+    }
+  };
 
   // Admin filter, search & pagination state for vehicle lists
   const [searchQuery, setSearchQuery] = useState("");
@@ -1442,25 +1480,28 @@ function AdminPage() {
             ) : null;
           })}
 
-          {/* ── IMPORT PRODUCTS TAB ── */}
+          {/* ── IMPORT PRODUCTS & MULTI-API INTEGRATION TAB ── */}
           {activeTab === "import" && (
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
                 <div>
-                  <h3 className="font-display text-base font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                    <DownloadCloud className="text-cyan-glow" size={18} />
-                    External API Product Import
+                  <h3 className="font-display text-lg font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <DownloadCloud className="text-cyan-glow" size={20} />
+                    External API Integration & Sync Center
                   </h3>
-                  <p className="text-[10px] text-white/40 mt-0.5 uppercase tracking-wider">
-                    Fetch, preview, select, and import external inventory into MongoDB with duplicate protection.
+                  <p className="text-xs text-white/40 mt-1 uppercase tracking-wider">
+                    Multi-provider catalog adapters for Cars, Bikes, Jets, and Boats with connection testing & duplicate-safe MongoDB sync.
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => refetchExternal()}
-                    className="p-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/20 cursor-pointer transition-all flex items-center gap-1.5 text-xs"
+                    disabled={syncProductsMutation.isPending}
+                    onClick={() => handleExecuteSync(importCategoryFilter)}
+                    className="flex items-center gap-2 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-cyan-glow hover:bg-cyan-glow hover:text-black transition-all cursor-pointer shadow-[0_0_15px_rgba(0,242,255,0.2)] disabled:opacity-40"
                   >
-                    <RefreshCw size={13} /> Refresh Candidates
+                    <RefreshCw size={13} className={syncProductsMutation.isPending ? "animate-spin" : ""} />
+                    {syncProductsMutation.isPending ? "Syncing..." : "Sync Provider Inventory"}
                   </button>
                   <button
                     disabled={selectedCandidateIds.length === 0 || importProductsMutation.isPending}
@@ -1475,88 +1516,190 @@ function AdminPage() {
                 </div>
               </div>
 
-              {/* Category selector */}
-              <div className="flex flex-wrap gap-2">
-                {["all", "car", "bike", "jet", "ship"].map((cat) => (
+              {/* ── API PROVIDERS STATUS DASHBOARD ── */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-glow flex items-center gap-2">
+                    <Zap size={14} /> API Provider Health Dashboard
+                  </h4>
                   <button
-                    key={cat}
-                    onClick={() => setImportCategoryFilter(cat)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-                      importCategoryFilter === cat
-                        ? "bg-cyan-glow border-cyan-glow text-black"
-                        : "bg-white/5 border-white/10 text-white/60 hover:text-white"
-                    }`}
+                    onClick={() => refetchStatuses()}
+                    className="text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-white flex items-center gap-1 cursor-pointer"
                   >
-                    {cat === "all" ? "All Categories" : CATEGORY_LABELS[cat]}
+                    <RefreshCw size={11} /> Refresh Statuses
                   </button>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(providerStatuses.length > 0 ? providerStatuses : [
+                    { id: "carDatabase", name: "CarDatabase API", category: "car", isConfigured: !!process.env.CAR_DATABASE_API_KEY, description: "Global automotive specs & dealer inventory feed" },
+                    { id: "carImages", name: "CarImages API", category: "car", isConfigured: !!process.env.CAR_IMAGES_API_KEY, description: "High-resolution vehicle gallery & imagery provider" },
+                    { id: "vehdb", name: "VehDB Motorcycle API", category: "bike", isConfigured: !!process.env.VEHDB_API_KEY, description: "Superbike & custom motorcycle dataset" },
+                    { id: "jetApi", name: "JetAPI Aviation Feed", category: "jet", isConfigured: !!process.env.JET_API_KEY, description: "Executive jet & long-range aviation market data" },
+                    { id: "boats", name: "Boats.com Inventory API", category: "ship", isConfigured: !!process.env.BOATS_API_KEY, description: "Luxury yacht & marine vessel inventory system" },
+                  ]).map((provider) => (
+                    <div key={provider.id} className="glass-morph p-4 rounded-2xl border border-white/5 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <h5 className="font-display text-sm font-bold text-white">{provider.name}</h5>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider border ${
+                            provider.isConfigured
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          }`}>
+                            {provider.isConfigured ? "Configured" : "Not Configured"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-white/50 mt-1">{provider.description}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+                          Cat: <span className="text-cyan-glow">{provider.category?.toUpperCase()}</span>
+                        </span>
+                        <button
+                          disabled={testingProviderId === provider.id}
+                          onClick={() => handleTestProvider(provider.id)}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-wider text-white hover:border-cyan-glow hover:text-cyan-glow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+                        >
+                          <Zap size={10} className={testingProviderId === provider.id ? "animate-spin text-cyan-glow" : ""} />
+                          {testingProviderId === provider.id ? "Testing..." : "Test Connection"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {loadingCandidates ? (
-                <div className="glass-morph rounded-2xl p-12 text-center border border-white/5">
-                  <RefreshCw className="animate-spin text-cyan-glow mx-auto mb-3" size={24} />
-                  <p className="text-white/50 text-xs uppercase tracking-wider">Fetching external catalog candidates...</p>
-                </div>
-              ) : externalCandidates.length === 0 ? (
-                <div className="glass-morph rounded-2xl p-12 text-center border border-dashed border-white/10">
-                  <p className="text-white/40 text-xs uppercase tracking-wider">No external candidates available for this filter.</p>
-                </div>
-              ) : (
-                <div className="glass-morph rounded-2xl border border-white/5 overflow-hidden">
-                  <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
-                      {externalCandidates.length} Candidate(s) Found
-                    </span>
-                    <button
-                      onClick={toggleSelectAllCandidates}
-                      className="text-[10px] font-bold uppercase tracking-wider text-cyan-glow hover:underline cursor-pointer"
-                    >
-                      {selectedCandidateIds.length === externalCandidates.filter((c) => !c.isImported).length
-                        ? "Deselect All"
-                        : "Select All New"}
+              {/* ── SYNC REPORT SUMMARY ── */}
+              {syncReport && (
+                <div className="glass-morph p-5 rounded-2xl border border-cyan-glow/20 bg-cyan-glow/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-glow flex items-center gap-2">
+                      <CheckCircle2 size={14} /> Sync Execution Report Summary
+                    </h4>
+                    <button onClick={() => setSyncReport(null)} className="text-white/40 hover:text-white cursor-pointer">
+                      <X size={14} />
                     </button>
                   </div>
-                  <div className="divide-y divide-white/5">
-                    {externalCandidates.map((item) => (
-                      <div
-                        key={item.externalId}
-                        className={`p-4 flex flex-wrap items-center justify-between gap-4 transition-colors ${
-                          item.isImported ? "bg-white/[0.02] opacity-60" : "hover:bg-white/5"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="checkbox"
-                            disabled={item.isImported}
-                            checked={selectedCandidateIds.includes(item.externalId)}
-                            onChange={() => toggleSelectCandidate(item.externalId)}
-                            className="size-4 accent-cyan-500 rounded cursor-pointer disabled:opacity-30"
-                          />
-                          <img src={item.image} className="size-16 rounded-xl object-cover border border-white/10" alt="" />
-                          <div>
-                            <h4 className="font-display text-sm font-bold text-white">{item.title}</h4>
-                            <p className="text-[9px] uppercase tracking-widest text-white/40 mt-0.5">
-                              {item.category.toUpperCase()} • {item.brand} • {item.location?.country || "USA"}
-                            </p>
-                            <p className="text-xs font-bold text-cyan-glow mt-1">{formatPrice(item.price)}</p>
-                          </div>
-                        </div>
-                        <div>
-                          {item.isImported ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
-                              <Check size={10} /> Saved in MongoDB
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 rounded-full bg-cyan-glow/10 border border-cyan-glow/20 text-cyan-glow text-[9px] font-bold uppercase tracking-wider">
-                              Ready for Import
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <p className="text-[9px] text-white/40 uppercase tracking-widest">Total Candidates</p>
+                      <p className="text-sm font-bold text-white mt-0.5">{syncReport.fetched}</p>
+                    </div>
+                    <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+                      <p className="text-[9px] text-emerald-400 uppercase tracking-widest">New Imported</p>
+                      <p className="text-sm font-bold text-emerald-400 mt-0.5">{syncReport.imported}</p>
+                    </div>
+                    <div className="bg-cyan-glow/10 p-3 rounded-xl border border-cyan-glow/20">
+                      <p className="text-[9px] text-cyan-glow uppercase tracking-widest">Updated</p>
+                      <p className="text-sm font-bold text-cyan-glow mt-0.5">{syncReport.updated}</p>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <p className="text-[9px] text-white/40 uppercase tracking-widest">Skipped</p>
+                      <p className="text-sm font-bold text-white/60 mt-0.5">{syncReport.skipped}</p>
+                    </div>
+                    <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                      <p className="text-[9px] text-red-400 uppercase tracking-widest">Failed</p>
+                      <p className="text-sm font-bold text-red-400 mt-0.5">{syncReport.failed}</p>
+                    </div>
                   </div>
                 </div>
               )}
+
+              {/* ── INVENTORY PREVIEW & SELECTION SECTION ── */}
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {["all", "carDatabase", "carImages", "vehdb", "jetApi", "boats"].map((provKey) => (
+                      <button
+                        key={provKey}
+                        onClick={() => setImportCategoryFilter(provKey)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
+                          importCategoryFilter === provKey
+                            ? "bg-cyan-glow border-cyan-glow text-black"
+                            : "bg-white/5 border-white/10 text-white/60 hover:text-white"
+                        }`}
+                      >
+                        {provKey === "all" ? "All Providers" : provKey}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => refetchExternal()}
+                    className="p-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/20 cursor-pointer transition-all flex items-center gap-1.5 text-xs"
+                  >
+                    <RefreshCw size={13} /> Refresh Candidates
+                  </button>
+                </div>
+
+                {loadingCandidates ? (
+                  <div className="glass-morph rounded-2xl p-12 text-center border border-white/5">
+                    <RefreshCw className="animate-spin text-cyan-glow mx-auto mb-3" size={24} />
+                    <p className="text-white/50 text-xs uppercase tracking-wider">Fetching provider catalog candidates...</p>
+                  </div>
+                ) : externalCandidates.length === 0 ? (
+                  <div className="glass-morph rounded-2xl p-12 text-center border border-dashed border-white/10">
+                    <p className="text-white/40 text-xs uppercase tracking-wider">No external candidates available for this provider selection.</p>
+                  </div>
+                ) : (
+                  <div className="glass-morph rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+                        {externalCandidates.length} Candidate(s) Available
+                      </span>
+                      <button
+                        onClick={toggleSelectAllCandidates}
+                        className="text-[10px] font-bold uppercase tracking-wider text-cyan-glow hover:underline cursor-pointer"
+                      >
+                        {selectedCandidateIds.length === externalCandidates.filter((c) => !c.isImported).length
+                          ? "Deselect All"
+                          : "Select All New"}
+                      </button>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {externalCandidates.map((item) => (
+                        <div
+                          key={item.externalId}
+                          className={`p-4 flex flex-wrap items-center justify-between gap-4 transition-colors ${
+                            item.isImported ? "bg-white/[0.02] opacity-60" : "hover:bg-white/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="checkbox"
+                              disabled={item.isImported}
+                              checked={selectedCandidateIds.includes(item.externalId)}
+                              onChange={() => toggleSelectCandidate(item.externalId)}
+                              className="size-4 accent-cyan-500 rounded cursor-pointer disabled:opacity-30"
+                            />
+                            <img src={item.image} className="size-16 rounded-xl object-cover border border-white/10" alt="" />
+                            <div>
+                              <h4 className="font-display text-sm font-bold text-white">{item.title}</h4>
+                              <p className="text-[9px] uppercase tracking-widest text-white/40 mt-0.5">
+                                {item.category.toUpperCase()} • {item.brand} • {item.source} • {item.location?.country || "USA"}
+                              </p>
+                              <p className="text-xs font-bold text-cyan-glow mt-1">{formatPrice(item.price)}</p>
+                            </div>
+                          </div>
+                          <div>
+                            {item.isImported ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                                <Check size={10} /> Saved in MongoDB
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 rounded-full bg-cyan-glow/10 border border-cyan-glow/20 text-cyan-glow text-[9px] font-bold uppercase tracking-wider">
+                                Ready for Import
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

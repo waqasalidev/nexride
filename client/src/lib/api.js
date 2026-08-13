@@ -19,12 +19,95 @@ export function useProducts(params = {}, token) {
   });
 }
 
+// Fetch provider configuration and health statuses
+export function useProviderStatuses(token) {
+  return useQuery({
+    queryKey: ["providerStatuses", token],
+    queryFn: async () => {
+      const res = await fetch("/api/products/external/providers", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch provider statuses");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+}
+
+// Test specific provider connection
+export function useTestProvider(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (providerId) => {
+      const res = await fetch(`/api/products/external/test/${providerId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to test provider connection");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["providerStatuses"] });
+    },
+  });
+}
+
+// Fetch candidate products from specific provider or category endpoint
+export function useProviderInventory(provider = "all", token) {
+  return useQuery({
+    queryKey: ["providerInventory", provider, token],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/external/${provider}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch provider inventory candidates");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+}
+
+// Bulk sync provider inventory into MongoDB
+export function useSyncProducts(token) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (provider = "all") => {
+      const res = await fetch("/api/products/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ provider }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to sync inventory");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["jets"] });
+      queryClient.invalidateQueries({ queryKey: ["ships"] });
+      queryClient.invalidateQueries({ queryKey: ["providerInventory"] });
+      queryClient.invalidateQueries({ queryKey: ["providerStatuses"] });
+    },
+  });
+}
+
 // Fetch candidate products from external API endpoint
 export function useExternalCandidates(category = "all", token) {
   return useQuery({
     queryKey: ["externalCandidates", category, token],
     queryFn: async () => {
-      const res = await fetch(`/api/products/external-fetch?category=${category}`, {
+      const res = await fetch(`/api/products/external/${category}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch external product candidates");

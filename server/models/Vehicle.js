@@ -132,6 +132,16 @@ const vehicleSchema = new mongoose.Schema(
       sparse: true,
       index: true,
     },
+    source: {
+      type: String,
+      enum: ["manual", "carDatabase", "carImages", "vehdb", "jetApi", "jetnet", "boats"],
+      default: "manual",
+      index: true,
+    },
+    sourceUrl: {
+      type: String,
+      default: "",
+    },
     stock: {
       type: Number,
       default: 1,
@@ -211,6 +221,7 @@ const vehicleSchema = new mongoose.Schema(
 vehicleSchema.index({ category: 1, status: 1 });
 vehicleSchema.index({ brand: 1, category: 1 });
 vehicleSchema.index({ createdAt: -1 });
+vehicleSchema.index({ source: 1, externalId: 1 }, { sparse: true });
 
 const Vehicle = mongoose.model("Vehicle", vehicleSchema);
 
