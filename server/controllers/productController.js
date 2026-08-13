@@ -11,6 +11,7 @@ import {
   syncProviderInventory,
   normalizeProduct,
 } from "../services/externalApiService.js";
+import { cleanModelAndTitle } from "../utils/brandNormalizer.js";
 
 // Helper to save document in matching sub-collection (cars, bikes, jets, ships)
 const saveToSubCollection = async (vehicleData) => {
@@ -357,14 +358,15 @@ export const createProduct = async (req, res) => {
     const discPrice = discount > 0 ? Math.round(origPrice * (1 - discount / 100)) : origPrice;
     const isFeat = listingStatus === "Featured" || isFeatured === true;
 
-    const productTitle = title || `${year} ${brand} ${model}`;
-    const productSlug = slug || generateSlug(brand, model, year);
+    const cleaned = cleanModelAndTitle(brand, model, Number(year), title);
+    const productTitle = title ? title.trim() : cleaned.title;
+    const productSlug = slug || cleaned.slug;
 
     const productData = {
       title: productTitle,
       slug: productSlug,
-      brand,
-      model,
+      brand: cleaned.brand,
+      model: cleaned.model,
       year: Number(year),
       price: discPrice,
       originalPrice: origPrice,
