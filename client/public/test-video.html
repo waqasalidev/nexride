@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minimal Video Test Page</title>
+  <style>
+    body { background: #050505; color: #fff; font-family: monospace; padding: 20px; }
+    video { width: 100%; max-width: 800px; height: auto; border: 2px solid #00f2ff; display: block; margin-bottom: 20px; }
+    .status { background: #111; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+    button { background: #00f2ff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>NexRide X Video Asset Test Page (Outside React)</h1>
+  <video id="testVideo" autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop&q=80">
+    <source src="/videos/nexride-hero.mp4" type="video/mp4">
+    Your browser does not support video tag.
+  </video>
+
+  <div>
+    <button onclick="playVideo()">Force Play()</button>
+    <button onclick="toggleMute()">Toggle Mute</button>
+  </div>
+
+  <div className="status" style="margin-top: 20px;">
+    <h3>Video Debug Output</h3>
+    <pre id="debugLog">Initializing test...</pre>
+  </div>
+
+  <script>
+    const v = document.getElementById('testVideo');
+    const log = document.getElementById('debugLog');
+
+    function updateStatus(event = 'info') {
+      log.innerText = `Event: ${event}
+URL: ${v.currentSrc || '/videos/nexride-hero.mp4'}
+ReadyState: ${v.readyState} (4=HAVE_ENOUGH_DATA)
+NetworkState: ${v.networkState} (1=IDLE, 2=LOADING)
+Paused: ${v.paused}
+Muted: ${v.muted}
+Duration: ${v.duration} s
+CurrentTime: ${v.currentTime} s
+Video Width/Height: ${v.videoWidth} x ${v.videoHeight}
+Error Code: ${v.error ? v.error.code + ' - ' + v.error.message : 'NULL'}`;
+    }
+
+    ['loadstart', 'loadedmetadata', 'canplay', 'playing', 'error', 'pause', 'stalled', 'waiting'].forEach(evt => {
+      v.addEventListener(evt, () => updateStatus(evt));
+    });
+
+    function playVideo() {
+      v.muted = true;
+      v.play().then(() => {
+        updateStatus('Play Succeeded');
+      }).catch(err => {
+        updateStatus('Play Blocked: ' + err.message);
+      });
+    }
+
+    function toggleMute() {
+      v.muted = !v.muted;
+      updateStatus('Mute Toggled: ' + v.muted);
+    }
+
+    // Attempt auto play on load
+    window.addEventListener('load', () => {
+      playVideo();
+    });
+  </script>
+</body>
+</html>
