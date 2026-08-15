@@ -68,12 +68,16 @@
   }
   html {
     scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #00f2ff #050505;
+    overflow-x: hidden;
   }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
     background-image:
       radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 242, 255, 0.08), transparent),
       radial-gradient(ellipse 60% 50% at 100% 100%, rgba(0, 242, 255, 0.04), transparent);
@@ -81,6 +85,24 @@
   ::selection {
     background: var(--cyan-glow);
     color: #050505;
+  }
+  /* ── CUSTOM NEXRIDE LUXURY SCROLLBAR ── */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050505;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00f2ff 0%, rgba(0, 242, 255, 0.5) 100%);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00f2ff;
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.8);
   }
 }
 

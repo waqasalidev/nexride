@@ -1,18 +1,107 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, Compass } from "lucide-react";
+import { Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, Compass, Play, Activity } from "lucide-react";
 
 export function HeroVideo({ onExploreClick, onBrowseClick }) {
   const [isMuted, setIsMuted] = useState(true);
-  const [videoFailed, setVideoFailed] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
+  const [videoError, setVideoError] = useState(null);
+  const [showDebugPanel, setShowDebugPanel] = useState(true);
   const videoRef = useRef(null);
+
+  // Real-time video telemetry debug state
+  const [telemetry, setTelemetry] = useState({
+    url: "/videos/nexride-hero.mp4",
+    readyState: 0,
+    networkState: 0,
+    duration: 0,
+    currentTime: 0,
+    paused: true,
+    muted: true,
+    error: null,
+  });
+
+  const updateTelemetry = () => {
+    if (videoRef.current) {
+      const v = videoRef.current;
+      setTelemetry({
+        url: v.currentSrc || "/videos/nexride-hero.mp4",
+        readyState: v.readyState,
+        networkState: v.networkState,
+        duration: v.duration || 0,
+        currentTime: v.currentTime || 0,
+        paused: v.paused,
+        muted: v.muted,
+        error: v.error ? `Code ${v.error.code}: ${v.error.message}` : "NULL",
+      });
+      setIsPlaying(!v.paused);
+      setIsMuted(v.muted);
+    }
+  };
+
+  // Programmatic Autoplay Initialization
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = true;
+      video.playsInline = true;
+      
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setIsAutoplayBlocked(false);
+            updateTelemetry();
+          })
+          .catch((err) => {
+            console.warn("Browser Autoplay Policy Deferred Video Playback:", err);
+            setIsAutoplayBlocked(true);
+            setIsPlaying(false);
+            updateTelemetry();
+          });
+      }
+    }
+  }, []);
+
+  // Update telemetry periodically while playing
+  useEffect(() => {
+    const interval = setInterval(updateTelemetry, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleManualPlay = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          setIsAutoplayBlocked(false);
+          updateTelemetry();
+        })
+        .catch((err) => {
+          console.error("Manual Play error:", err);
+        });
+    }
+  };
 
   const toggleSound = () => {
     if (videoRef.current) {
       const nextMuted = !isMuted;
       videoRef.current.muted = nextMuted;
       setIsMuted(nextMuted);
+      updateTelemetry();
     }
+  };
+
+  const handleVideoError = (e) => {
+    const v = e.target;
+    const err = v.error ? `Code ${v.error.code} - ${v.error.message}` : "Failed to load video stream";
+    console.error("Video Error Event Captured:", err);
+    setVideoError(err);
+    updateTelemetry();
   };
 
   const POSTER_IMAGE = "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1920&auto=format&fit=crop&q=80";
@@ -20,48 +109,54 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
   return (
     <div className="relative min-h-[92vh] sm:min-h-screen w-full flex items-center justify-center overflow-hidden bg-neutral-950">
       {/* ── BACKGROUND VIDEO PLAYER WITH POSTER FALLBACK ── */}
-      {!videoFailed ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster={POSTER_IMAGE}
-          onError={() => setVideoFailed(true)}
-          className="absolute inset-0 z-0 size-full object-cover object-center scale-105 transition-opacity duration-1000"
-        >
-          {/* Cinematic Supercars Driving / Aircraft Flying Video Footage */}
-          <source
-            src="https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-on-a-road-41555-large.mp4"
-            type="video/mp4"
-          />
-          <source
-            src="https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-private-jet-flying-over-clouds-42862-large.mp4"
-            type="video/mp4"
-          />
-          <source
-            src="https://assets.mixkit.co/videos/preview/mixkit-supercars-driving-on-a-road-in-the-desert-41554-large.mp4"
-            type="video/mp4"
-          />
-        </video>
-      ) : (
-        <img
-          src={POSTER_IMAGE}
-          alt="NexRide X Hero"
-          className="absolute inset-0 z-0 size-full object-cover object-center"
-        />
-      )}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster={POSTER_IMAGE}
+        onLoadedMetadata={updateTelemetry}
+        onCanPlay={updateTelemetry}
+        onPlay={updateTelemetry}
+        onPause={updateTelemetry}
+        onError={handleVideoError}
+        className="absolute inset-0 z-0 size-full object-cover object-center scale-105 transition-opacity duration-1000"
+      >
+        {/* Verified Local MP4 Video Asset (Served 200 OK directly by Vite/Nitro) */}
+        <source src="/videos/nexride-hero.mp4" type="video/mp4" />
+        Your browser does not support HTML5 video playback.
+      </video>
+
+      {/* Poster Fallback Image behind video for instant render */}
+      <img
+        src={POSTER_IMAGE}
+        alt="NexRide X Hero Poster"
+        className={`absolute inset-0 z-0 size-full object-cover object-center transition-opacity duration-1000 ${
+          isPlaying ? "opacity-0" : "opacity-100"
+        }`}
+      />
 
       {/* ── CINEMATIC DARK GRADIENT OVERLAY FOR HIGH CONTRAST & READABILITY ── */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-neutral-950 via-neutral-950/65 to-black/60" />
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-black/40 to-neutral-950" />
 
-      {/* ── SOUND TOGGLE CONTROL BUTTON (POSITIONED BELOW NAVBAR) ── */}
-      {!videoFailed && (
+      {/* ── CONTROL BUTTONS (SOUND & PLAY EXPERIENCE) ── */}
+      <div className="absolute top-28 right-6 sm:top-32 sm:right-10 z-30 flex items-center gap-3">
+        {isAutoplayBlocked && (
+          <button
+            onClick={handleManualPlay}
+            className="flex items-center gap-2 rounded-full border border-cyan-glow bg-cyan-glow/20 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-cyan-glow backdrop-blur-md hover:bg-cyan-glow hover:text-black transition-all cursor-pointer shadow-[0_0_20px_rgba(0,242,255,0.4)] animate-pulse"
+          >
+            <Play size={12} className="fill-current" />
+            <span>Play Experience</span>
+          </button>
+        )}
+
         <button
           onClick={toggleSound}
-          className="absolute top-28 right-6 sm:top-32 sm:right-10 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md hover:border-cyan-glow hover:text-white transition-all cursor-pointer shadow-xl"
+          className="flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md hover:border-cyan-glow hover:text-white transition-all cursor-pointer shadow-xl"
           title={isMuted ? "Unmute sound" : "Mute sound"}
         >
           {isMuted ? (
@@ -76,6 +171,30 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
             </>
           )}
         </button>
+      </div>
+
+      {/* ── REAL-TIME VIDEO DEBUG PANEL (DEV TELEMETRY OVERLAY) ── */}
+      {showDebugPanel && (
+        <div className="absolute bottom-6 left-6 z-30 max-w-xs rounded-xl border border-cyan-glow/30 bg-black/80 p-3.5 text-[10px] font-mono text-cyan-glow/90 backdrop-blur-md shadow-2xl space-y-1">
+          <div className="flex items-center justify-between border-b border-cyan-glow/20 pb-1 font-bold uppercase text-white">
+            <span className="flex items-center gap-1.5">
+              <Activity size={12} className="text-cyan-glow animate-spin" />
+              Video Telemetry Debug
+            </span>
+            <button
+              onClick={() => setShowDebugPanel(false)}
+              className="text-white/40 hover:text-white text-[9px] uppercase cursor-pointer"
+            >
+              [Hide]
+            </button>
+          </div>
+          <div><span className="text-white/50">URL:</span> {telemetry.url}</div>
+          <div><span className="text-white/50">readyState:</span> {telemetry.readyState} (4=HAVE_ENOUGH_DATA)</div>
+          <div><span className="text-white/50">networkState:</span> {telemetry.networkState} (1=IDLE)</div>
+          <div><span className="text-white/50">Status:</span> {telemetry.paused ? "Paused" : "Playing"} ({telemetry.muted ? "Muted" : "Unmuted"})</div>
+          <div><span className="text-white/50">Time:</span> {telemetry.currentTime.toFixed(1)}s / {telemetry.duration.toFixed(1)}s</div>
+          <div><span className="text-white/50">Error:</span> <span className={telemetry.error !== "NULL" ? "text-red-400 font-bold" : "text-emerald-400"}>{telemetry.error}</span></div>
+        </div>
       )}
 
       {/* ── HERO CONTENT (STARTS CLEANLY BELOW NAVBAR WITH RESPONSIVE TOP OFFSET) ── */}
