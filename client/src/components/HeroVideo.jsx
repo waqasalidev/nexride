@@ -1,162 +1,123 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, Compass, Play, Activity } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, Compass, Car, Bike, Plane, Anchor } from "lucide-react";
+
+const CATEGORIES = [
+  { id: "car", label: "Cars", src: "/videos/nexride-car.mp4", icon: Car },
+  { id: "bike", label: "Bikes", src: "/videos/nexride-bike.mp4", icon: Bike },
+  { id: "jet", label: "Jets", src: "/videos/nexride-jet.mp4", icon: Plane },
+  { id: "ship", label: "Ships", src: "/videos/nexride-ship.mp4", icon: Anchor },
+];
 
 export function HeroVideo({ onExploreClick, onBrowseClick }) {
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
-  const [videoError, setVideoError] = useState(null);
-  const [showDebugPanel, setShowDebugPanel] = useState(true);
   const videoRef = useRef(null);
 
-  // Real-time video telemetry debug state
-  const [telemetry, setTelemetry] = useState({
-    url: "/videos/nexride-hero.mp4",
-    readyState: 0,
-    networkState: 0,
-    duration: 0,
-    currentTime: 0,
-    paused: true,
-    muted: true,
-    error: null,
-  });
+  const activeCategory = CATEGORIES[activeCategoryIndex];
 
-  const updateTelemetry = () => {
-    if (videoRef.current) {
-      const v = videoRef.current;
-      setTelemetry({
-        url: v.currentSrc || "/videos/nexride-hero.mp4",
-        readyState: v.readyState,
-        networkState: v.networkState,
-        duration: v.duration || 0,
-        currentTime: v.currentTime || 0,
-        paused: v.paused,
-        muted: v.muted,
-        error: v.error ? `Code ${v.error.code}: ${v.error.message}` : "NULL",
-      });
-      setIsPlaying(!v.paused);
-      setIsMuted(v.muted);
-    }
-  };
+  // Rotate category clips automatically on clip end or 8-second interval
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveCategoryIndex((prev) => (prev + 1) % CATEGORIES.length);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [activeCategoryIndex]);
 
-  // Programmatic Autoplay Initialization
+  // Programmatic Autoplay initialization whenever active clip changes
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
       video.muted = true;
       video.playsInline = true;
-      
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            setIsPlaying(true);
             setIsAutoplayBlocked(false);
-            updateTelemetry();
           })
           .catch((err) => {
-            console.warn("Browser Autoplay Policy Deferred Video Playback:", err);
+            console.warn("Browser autoplay policy deferred video:", err);
             setIsAutoplayBlocked(true);
-            setIsPlaying(false);
-            updateTelemetry();
           });
       }
     }
-  }, []);
-
-  // Update telemetry periodically while playing
-  useEffect(() => {
-    const interval = setInterval(updateTelemetry, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleManualPlay = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = true;
-      videoRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-          setIsAutoplayBlocked(false);
-          updateTelemetry();
-        })
-        .catch((err) => {
-          console.error("Manual Play error:", err);
-        });
-    }
-  };
+  }, [activeCategoryIndex]);
 
   const toggleSound = () => {
     if (videoRef.current) {
       const nextMuted = !isMuted;
       videoRef.current.muted = nextMuted;
       setIsMuted(nextMuted);
-      updateTelemetry();
     }
   };
 
-  const handleVideoError = (e) => {
-    const v = e.target;
-    const err = v.error ? `Code ${v.error.code} - ${v.error.message}` : "Failed to load video stream";
-    console.error("Video Error Event Captured:", err);
-    setVideoError(err);
-    updateTelemetry();
-  };
-
-  const POSTER_IMAGE = "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1920&auto=format&fit=crop&q=80";
+  const POSTER_IMAGE = "/images/nexride-hero-poster.jpg";
 
   return (
-    <div className="relative min-h-[92vh] sm:min-h-screen w-full flex items-center justify-center overflow-hidden bg-neutral-950">
-      {/* ── BACKGROUND VIDEO PLAYER WITH POSTER FALLBACK ── */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster={POSTER_IMAGE}
-        onLoadedMetadata={updateTelemetry}
-        onCanPlay={updateTelemetry}
-        onPlay={updateTelemetry}
-        onPause={updateTelemetry}
-        onError={handleVideoError}
-        className="absolute inset-0 z-0 size-full object-cover object-center scale-105 transition-opacity duration-1000"
-      >
-        {/* Verified Local MP4 Video Asset (Served 200 OK directly by Vite/Nitro) */}
-        <source src="/videos/nexride-hero.mp4" type="video/mp4" />
-        Your browser does not support HTML5 video playback.
-      </video>
+    <section className="relative w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden bg-neutral-950">
+      {/* ── MULTI-CATEGORY HERO BACKGROUND VIDEO PLAYER ── */}
+      <AnimatePresence mode="wait">
+        <motion.video
+          key={activeCategory.id}
+          ref={videoRef}
+          initial={{ opacity: 0.3 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0.3 }}
+          transition={{ duration: 0.8 }}
+          autoPlay
+          muted={isMuted}
+          loop
+          playsInline
+          preload="metadata"
+          poster={POSTER_IMAGE}
+          onEnded={() => setActiveCategoryIndex((prev) => (prev + 1) % CATEGORIES.length)}
+          className="absolute inset-0 z-0 size-full object-cover object-center scale-105"
+        >
+          <source src={activeCategory.src} type="video/mp4" />
+          <source src="/videos/nexride-hero.mp4" type="video/mp4" />
+        </motion.video>
+      </AnimatePresence>
 
-      {/* Poster Fallback Image behind video for instant render */}
+      {/* Local Poster Fallback Image behind video */}
       <img
         src={POSTER_IMAGE}
         alt="NexRide X Hero Poster"
-        className={`absolute inset-0 z-0 size-full object-cover object-center transition-opacity duration-1000 ${
-          isPlaying ? "opacity-0" : "opacity-100"
-        }`}
+        className="absolute inset-0 z-0 size-full object-cover object-center pointer-events-none opacity-40"
       />
 
-      {/* ── CINEMATIC DARK GRADIENT OVERLAY FOR HIGH CONTRAST & READABILITY ── */}
+      {/* ── CINEMATIC GRADIENT OVERLAY (DARK GRADIENT FOR READABILITY) ── */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-neutral-950 via-neutral-950/65 to-black/60" />
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-black/40 to-neutral-950" />
 
-      {/* ── CONTROL BUTTONS (SOUND & PLAY EXPERIENCE) ── */}
-      <div className="absolute top-28 right-6 sm:top-32 sm:right-10 z-30 flex items-center gap-3">
-        {isAutoplayBlocked && (
-          <button
-            onClick={handleManualPlay}
-            className="flex items-center gap-2 rounded-full border border-cyan-glow bg-cyan-glow/20 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-cyan-glow backdrop-blur-md hover:bg-cyan-glow hover:text-black transition-all cursor-pointer shadow-[0_0_20px_rgba(0,242,255,0.4)] animate-pulse"
-          >
-            <Play size={12} className="fill-current" />
-            <span>Play Experience</span>
-          </button>
-        )}
+      {/* ── CATEGORY INDICATOR BADGES (CARS • BIKES • JETS • SHIPS) ── */}
+      <div className="absolute top-6 left-6 sm:top-8 sm:left-10 z-30 flex items-center gap-2">
+        {CATEGORIES.map((cat, idx) => {
+          const Icon = cat.icon;
+          const isActive = idx === activeCategoryIndex;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategoryIndex(idx)}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                isActive
+                  ? "bg-cyan-glow text-black shadow-[0_0_15px_rgba(0,242,255,0.5)] scale-105"
+                  : "bg-black/60 text-white/60 border border-white/10 hover:border-cyan-glow/40 hover:text-white"
+              }`}
+            >
+              <Icon size={12} />
+              <span className="hidden sm:inline">{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
+      {/* ── SOUND TOGGLE CONTROL BUTTON ── */}
+      <div className="absolute top-6 right-6 sm:top-8 sm:right-10 z-30">
         <button
           onClick={toggleSound}
-          className="flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md hover:border-cyan-glow hover:text-white transition-all cursor-pointer shadow-xl"
+          className="flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md hover:border-cyan-glow hover:text-white transition-all cursor-pointer shadow-xl"
           title={isMuted ? "Unmute sound" : "Mute sound"}
         >
           {isMuted ? (
@@ -173,32 +134,8 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
         </button>
       </div>
 
-      {/* ── REAL-TIME VIDEO DEBUG PANEL (DEV TELEMETRY OVERLAY) ── */}
-      {showDebugPanel && (
-        <div className="absolute bottom-6 left-6 z-30 max-w-xs rounded-xl border border-cyan-glow/30 bg-black/80 p-3.5 text-[10px] font-mono text-cyan-glow/90 backdrop-blur-md shadow-2xl space-y-1">
-          <div className="flex items-center justify-between border-b border-cyan-glow/20 pb-1 font-bold uppercase text-white">
-            <span className="flex items-center gap-1.5">
-              <Activity size={12} className="text-cyan-glow animate-spin" />
-              Video Telemetry Debug
-            </span>
-            <button
-              onClick={() => setShowDebugPanel(false)}
-              className="text-white/40 hover:text-white text-[9px] uppercase cursor-pointer"
-            >
-              [Hide]
-            </button>
-          </div>
-          <div><span className="text-white/50">URL:</span> {telemetry.url}</div>
-          <div><span className="text-white/50">readyState:</span> {telemetry.readyState} (4=HAVE_ENOUGH_DATA)</div>
-          <div><span className="text-white/50">networkState:</span> {telemetry.networkState} (1=IDLE)</div>
-          <div><span className="text-white/50">Status:</span> {telemetry.paused ? "Paused" : "Playing"} ({telemetry.muted ? "Muted" : "Unmuted"})</div>
-          <div><span className="text-white/50">Time:</span> {telemetry.currentTime.toFixed(1)}s / {telemetry.duration.toFixed(1)}s</div>
-          <div><span className="text-white/50">Error:</span> <span className={telemetry.error !== "NULL" ? "text-red-400 font-bold" : "text-emerald-400"}>{telemetry.error}</span></div>
-        </div>
-      )}
-
-      {/* ── HERO CONTENT (STARTS CLEANLY BELOW NAVBAR WITH RESPONSIVE TOP OFFSET) ── */}
-      <div className="relative z-20 mx-auto max-w-5xl px-6 pt-32 sm:pt-40 md:pt-44 lg:pt-48 pb-20 text-center space-y-8">
+      {/* ── HERO CONTENT (CENTERED CLEANLY INSIDE HERO SECTION BELOW NAVBAR) ── */}
+      <div className="relative z-20 mx-auto max-w-5xl px-6 py-20 text-center space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -207,7 +144,7 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
         >
           <Sparkles className="text-cyan-glow size-3.5 animate-pulse" />
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-glow">
-            NEXRIDE X • DRIVE. FLY. RIDE. SAIL.
+            NEXRIDE X • DRIVE. RIDE. FLY. SAIL.
           </span>
         </motion.div>
 
@@ -229,7 +166,7 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
           transition={{ duration: 0.9, delay: 0.2 }}
           className="mx-auto max-w-2xl text-xs sm:text-sm md:text-base text-white/70 uppercase tracking-widest font-medium leading-relaxed"
         >
-          Explore premium cars, motorcycles, private jets and luxury vessels from around the world.
+          Discover premium cars, motorcycles, private jets and luxury vessels from around the world.
         </motion.p>
 
         <motion.div
@@ -275,6 +212,6 @@ export function HeroVideo({ onExploreClick, onBrowseClick }) {
           </div>
         </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
